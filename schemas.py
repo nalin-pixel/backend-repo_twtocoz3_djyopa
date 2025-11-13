@@ -1,48 +1,49 @@
 """
-Database Schemas
+Database Schemas for Rental App
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model becomes a MongoDB collection using the lowercase of the class
+name. For example, class Listing -> "listing" collection.
 """
 
+from typing import Optional, List, Literal
 from pydantic import BaseModel, Field
-from typing import Optional
+from datetime import datetime
 
-# Example schemas (replace with your own):
+Role = Literal["landlord", "tenant"]
 
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    auth_uid: str = Field(..., description="Firebase Auth UID")
+    email: str
+    display_name: Optional[str] = None
+    role: Role = Field("tenant", description="User role: landlord or tenant")
+    phone: Optional[str] = None
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+class Listing(BaseModel):
+    landlord_uid: str = Field(..., description="Owner (Firebase UID)")
+    title: str
+    description: Optional[str] = None
+    address: str
+    city: str
+    state: str
+    rent: float
+    bedrooms: int = 1
+    bathrooms: float = 1
+    amenities: List[str] = []
+    available_from: Optional[datetime] = None
+    is_active: bool = True
 
-# Add your own schemas here:
-# --------------------------------------------------
+class RentalRequest(BaseModel):
+    listing_id: str
+    tenant_uid: str
+    status: Literal["pending", "approved", "rejected"] = "pending"
+    message: Optional[str] = None
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Agreement(BaseModel):
+    listing_id: str
+    landlord_uid: str
+    tenant_uid: str
+    start_date: datetime
+    end_date: datetime
+    monthly_rent: float
+    terms: Optional[str] = None
+    hash: Optional[str] = None  # placeholder for future blockchain verification
